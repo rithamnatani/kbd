@@ -1,0 +1,298 @@
+;; Kanata Configuration for Wide-Mod Mirrored Gallium on ANSI Keyboards
+;; HRM Strategy: Approach A (layer-switch + on-idle) with tap-hold-release-keys nesting
+
+(defcfg
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  chords-v2-min-idle 100       ;; ms of idle before combos re-engage
+)
+
+;; ---------------------------------------------------------------------------
+;; SOURCE DEFINITION (61 keys)
+;; ---------------------------------------------------------------------------
+
+(defsrc
+  esc   f1    f2    f3    f4    f5       f6    f7    f8    f9    f10   f11   f12
+  
+  grv   1     2     3     4     5        6     7     8     9     0     -     =     bspc
+  tab   q     w     e     r     t        y     u     i     o     p     [     ]     \
+  caps  a     s     d     f     g        h     j     k     l     ;     '     ent
+        lsft  z     x     c     v    b   n     m     ,     .     /     rsft
+        
+        lctl  lmet        lalt  spc            ralt  rctl        rmet  left
+)
+
+;; ---------------------------------------------------------------------------
+;; VARIABLES
+;; ---------------------------------------------------------------------------
+(defvar
+  tap-time          200   ;; tap-repress-timeout (quick-tap in ZMK)
+  hold-time         250   ;; tapping-term
+  require-prior-idle 150  ;; ms of idle before HRMs re-engage
+  sticky-time       1500  ;; one-shot modifier timeout
+
+  ;; Positional key lists — same-hand keys that force HRM to resolve as tap
+  keys-l (
+    q     w     e     r     t
+    a     s     d     f     g
+    lsft  z     x     c     v
+  )
+  keys-r (
+    u     i     o     p     [
+    j     k     l     ;     '
+    m     ,     .     /     rsft
+  )
+)
+
+;; ---------------------------------------------------------------------------
+;; VIRTUAL KEYS
+;; ---------------------------------------------------------------------------
+(defvirtualkeys
+  to-base (layer-switch gallium-base)
+)
+
+;; ---------------------------------------------------------------------------
+;; TEMPLATES
+;; ---------------------------------------------------------------------------
+
+;; @tap — fires on every HRM tap to enter nomods layer
+;; and schedule a return to base after idle timeout
+(defalias
+  tap (multi
+    (layer-switch gallium-nomods)
+    (on-idle $require-prior-idle tap-virtualkey to-base)
+  )
+)
+
+;; Left-hand HRM: tap-hold-release-keys with @tap on tap action
+(deftemplate lhrm (tap-key hold-key)
+  (tap-hold-release-keys
+    $tap-time $hold-time
+    (multi $tap-key @tap)
+    $hold-key
+    $keys-l
+  )
+)
+
+;; Right-hand HRM: same, with right-side key list
+(deftemplate rhrm (tap-key hold-key)
+  (tap-hold-release-keys
+    $tap-time $hold-time
+    (multi $tap-key @tap)
+    $hold-key
+    $keys-r
+  )
+)
+
+;; Symbol-layer left HRM: no @tap (don't fight layer-toggle sym)
+(deftemplate slhrm (tap-key hold-key)
+  (tap-hold-release-keys
+    $tap-time $hold-time
+    $tap-key
+    $hold-key
+    $keys-l
+  )
+)
+
+;; Symbol-layer right HRM: no @tap
+(deftemplate srhrm (tap-key hold-key)
+  (tap-hold-release-keys
+    $tap-time $hold-time
+    $tap-key
+    $hold-key
+    $keys-r
+  )
+)
+
+;; ---------------------------------------------------------------------------
+;; ALIASES
+;; ---------------------------------------------------------------------------
+(defalias
+  ;; ── Home Row Mods (Mirrored Gallium) ─────────────────
+  ;; Left hand (was right)
+  hi (t! lhrm   i      lmet)
+  he (t! lhrm   e      lalt)
+  ha (t! lhrm   a      lctl)
+  hh (t! lhrm   h      lsft)
+
+  ;; Right hand (was left)
+  hs (t! rhrm   s      rsft)
+  ht (t! rhrm   t      rctl)
+  hr (t! rhrm   r      ralt)
+  hn (t! rhrm   n      rmet)
+
+  ;; ── Symbol Layer Home Row Mods (no @tap — stay on sym) ──
+  ;; Left (was right)
+  ssem  (t! slhrm   ;      lsft)
+  seq   (t! slhrm   =      lctl)
+  scol  (t! slhrm   S-;    lalt)
+  sxcl (t! slhrm   S-1    lmet)
+
+  ;; Right (was left)
+  sbrc (t! srhrm   S-[    rmet)
+  spar (t! srhrm   S-9    ralt)
+  sbkt (t! srhrm   [      rctl)
+  smin  (t! srhrm   -      rsft)
+
+  ;; ── Non-HRM keys as typing-layer triggers ──────────
+  tb (multi b @tap)
+  tl (multi l @tap)
+  td (multi d @tap)
+  tc (multi c @tap)
+  tv (multi v @tap)
+  tj (multi j @tap)
+  tf (multi f @tap)
+  to (multi o @tap)
+  tu (multi u @tap)
+  ty (multi y @tap)
+  tg (multi g @tap)
+  tx (multi x @tap)
+  tq (multi q @tap)
+  tm (multi m @tap)
+  tw (multi w @tap)
+  tz (multi z @tap)
+  tk (multi k @tap)
+  tp (multi p @tap)
+
+
+  ;; Custom shifted pairs
+  com (fork , S-3 (lsft rsft))              ;; Tap: , | Shift: #
+  dot (fork . S-2 (lsft rsft))              ;; Tap: . | Shift: @
+  spa (fork spc S-- (lsft rsft))            ;; Tap: Space | Shift: _
+  quo (fork S-' (unshift ') (lsft rsft))    ;; Tap: " | Shift: '
+
+  ;; Layer Toggles (Thumbs)
+  nav (tap-hold $tap-time $hold-time @spa (layer-toggle nav))   ;; Tap: Space | Hold: Nav
+  num (tap-hold $tap-time $hold-time esc (layer-toggle num))    ;; Tap: Esc | Hold: Num
+  sym (tap-hold $tap-time $hold-time bspc (layer-toggle sym))   ;; Tap: Bspc | Hold: Sym
+  fn  (tap-hold $tap-time $hold-time del (layer-toggle fn))     ;; Tap: Del | Hold: Fn
+
+  ;; One-shot layer toggles (for combos)
+  osnm (one-shot-press $sticky-time (layer-toggle num))
+  ossm (one-shot-press $sticky-time (layer-toggle sym))
+  osfn  (one-shot-press $sticky-time (layer-toggle fn))
+  osnv (one-shot-press $sticky-time (layer-toggle nav))
+
+  ;; One-shot sticky modifiers
+  lssh (one-shot-press-pcancel $sticky-time lsft)
+  rssh (one-shot-press-pcancel $sticky-time rsft)
+  lsct (one-shot-press-pcancel $sticky-time lctl)
+  rsct (one-shot-press-pcancel $sticky-time rctl)
+  lsme (one-shot-press-pcancel $sticky-time lmet)
+  rsme (one-shot-press-pcancel $sticky-time rmet)
+  lsal (one-shot-press-pcancel $sticky-time lalt)
+  rsal (one-shot-press-pcancel $sticky-time ralt)
+
+  ;; Nav layer aliases
+  cpy C-c
+  pst C-v
+  cut C-x
+  und C-z
+  rdo C-y
+)
+
+(defchordsv2
+  (i o) esc 50 all-released ()
+  (o p) tab 50 all-released ()
+
+  (, .) @osnm 50 all-released ()    ;; One-shot Num
+  (. /) @osfn  50 all-released ()    ;; One-shot Fn
+
+  (e r) ent 50 all-released ()        ;; (was right, now left)
+  (w e) del 50 all-released ()        ;; (was right, now left)
+
+  (s ;) (caps-word $sticky-time) 50 all-released ()  ;; Caps Word
+)
+
+;; ---------------------------------------------------------------------------
+;; BASE LAYER (Mirrored Gallium) — HRMs active
+;; ---------------------------------------------------------------------------
+;; ,     u     o     f     j         v     c     d     l     b
+;; i     e     a     h     y         g     s     t     r     n
+;; .     ;     '     p     k         z     w     m     q     x
+
+(deflayer gallium-base
+  caps  _     _     _     _     _        _     _     _     _     _     _     _
+  
+  grv   1     2     3     4     5        _     6     7     8     9     0     -     =
+  tab   ,     @tu   @to   @tf   @tj      /     @tv   @tc   @td   @tl   @tb   bspc  del
+  esc   @hi   @he   @ha   @hh   @ty      \     @tg   @hs   @ht   @hr   @hn   ent
+        .     ;     '     @tp   @tk  [   ]     @tz   @tw   @tm   @tq   @tx
+        
+        _     @lsal       @lssh spc            @osnv @rsct       @rsme _
+)
+
+;; ---------------------------------------------------------------------------
+;; NOMODS LAYER — plain keys during fast typing
+;; ---------------------------------------------------------------------------
+
+(deflayer gallium-nomods
+  _     _     _     _     _     _        _     _     _     _     _     _     _
+  
+  _     _     _     _     _     _        _     _     _     _     _     _     _     _
+  _     ,     u     o     f     j        _     v     c     d     l     b     _     _
+  _     i     e     a     h     y        _     g     s     t     r     n     _
+        .     ;     '     p     k    _   _     z     w     m     q     x
+        
+        _     _           _     _              _     _           _     _
+)
+
+;; ---------------------------------------------------------------------------
+;; NAV LAYER (mirrored)
+;; ---------------------------------------------------------------------------
+(deflayer nav
+  _     _     _     _     _     _        _     _     _     _     _     _     _
+  
+  f11   f1    f2    f3    f4    f5       _     f6    f7    f8    f9    f10   f12   _
+  _     _     _     _     _     _        _     pgup  home  up    end   _     _     _
+  _     @lsme @lsal @lsct @lssh _        _     pgdn  left  down  right _     _
+        @und  @cut  @cpy  @pst  _    _   _     _     _     _     _     ins
+        
+        _     _           _     _              _     _           _     _
+)
+
+;; ---------------------------------------------------------------------------
+;; SYMBOL LAYER (mirrored)
+;; ---------------------------------------------------------------------------
+;; _     +     \     >     _         _     <     ~     ^     _
+;; !     :     =     ;     *         |     -     [     (     {
+;; _     &     `     %     _         $     ]     )     }     _
+
+(deflayer sym
+  _     _     _     _     _     _        _     _     _     _     _     _     _
+  
+  _     _     _     _     _     _        _     _     _     _     _     _     _     _
+  _     _     S-=   \     S-.   _        _     _     S-,   S-`   S-6   _     _     _
+  _     @sxcl @scol @seq  @ssem S-8      _     S-\   @smin @sbkt @spar @sbrc _
+        _     S-7   `     S-5   _    _   _     S-4   ]     S-0   S-]   _
+        
+        _     _           _     _              _     _           _     _
+)
+
+;; ---------------------------------------------------------------------------
+;; NUM LAYER (mirrored)
+;; ---------------------------------------------------------------------------
+(deflayer num
+  _     _     _     _     _     _        _     _     _     _     _     _     _
+  
+  _     _     _     _     _     _        _     _     _     _     _     _     _     _
+  _     _     _     _     _     _        _     _     7     8     9     _     _     _
+  _     @lsme @lsal @lsct @lssh _        _     _     4     5     6     _     _
+        _     _     _     _     _    _   _     0     1     2     3     _
+        
+        _     _           _     _              _     _           _     _
+)
+
+;; ---------------------------------------------------------------------------
+;; FN LAYER (mirrored)
+;; ---------------------------------------------------------------------------
+(deflayer fn
+  _     _     _     _     _     _        _     _     _     _     _     _     _
+  
+  _     _     _     _     _     _        _     _     _     _     _     _     _     _
+  _     _     _     _     _     _        _     _     f7    f8    f9    f12   _     _
+  _     @lsme @lsal @lsct @lssh _        _     _     f4    f5    f6    f11   _
+        _     _     _     _     _    _   _     f10   f1    f2    f3    _
+        
+        _     _           _     _              _     _           _     _
+)

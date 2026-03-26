@@ -1,0 +1,125 @@
+;; Kanata Configuration for QWERTY QOL on Linux
+
+(defcfg
+  ;; If you want raw input to be blocked for mapped keys.
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+)
+
+;; ---------------------------------------------------------------------------
+;; SOURCE DEFINITION
+;; ---------------------------------------------------------------------------
+;; This defsrc covers 61 keys, forced top-row wide mod layout, trys to emulate split ergo keyboard with standard ansi keyboard layout
+
+(defsrc
+  caps  f1    f2    f3    f4    f5        f6    f7    f8    f9    f10   f11   f12
+  grv   1     2     3     4     5         6     7     8     9     0     -     =     bspc
+  tab   q     w     e     r     t         y     u     i     o     p     [     ]     \
+  esc   a     s     d     f     g         h     j     k     l     ;     '           ent
+  lsft  z     x     c     v     b         n     m     ,     .     /                 rsft
+  lctl  lmet  lalt              spc                   ralt  rctl              menu  rmet
+)
+
+(defvar
+  ;; Max ms a key can be held and still register as a tap (vs a hold)
+  tap-time 160
+  ;; Min ms a key must be held to activate the hold action
+  hold-time 160
+  ;; How long a one-shot modifier stays active waiting for the next keypress
+  sticky-time 2000
+)
+
+;; ---------------------------------------------------------------------------
+;; ALIASES
+;; ---------------------------------------------------------------------------
+(defalias
+
+  ;; Shift+Space = _
+  sp_ (fork spc S-- (lsft rsft))
+
+  ;; Layer Toggles (Thumbs)
+  nav (tap-hold $tap-time $hold-time spc (layer-toggle nav))  ;; Tap: Space | Hold: Nav
+  num (tap-hold $tap-time $hold-time tab (layer-toggle num))    ;; Tap: Tab | Hold: Num
+  sym (tap-hold $tap-time $hold-time bspc (layer-toggle sym))   ;; Tap: Bspc | Hold: Sym
+  fn  (tap-hold $tap-time $hold-time ret (layer-toggle fn))     ;; Tap: Ret | Hold: Fn
+
+  ;; One-shot Nav: activates nav layer for one keypress.
+  ;; One-shot modifiers on the nav layer stack with this (don't consume it),
+  ;; so e.g. osnv → lmet → lsft → left → auto-returns to base.
+  osnv (one-shot-press-pcancel $sticky-time (layer-while-held nav))
+
+  ectl (tap-hold $tap-time $hold-time esc lctl)
+  ealt (tap-hold $tap-time $hold-time ret lalt)
+
+  ;; One-shot sticky modifiers
+  lssh (one-shot-press-pcancel $sticky-time lsft)
+  rssh (one-shot-press-pcancel $sticky-time rsft)
+  lsct (one-shot-press-pcancel $sticky-time lctl)
+  rsct (one-shot-press-pcancel $sticky-time rctl)
+  lsme (one-shot-press-pcancel $sticky-time lmet)
+  rsme (one-shot-press-pcancel $sticky-time rmet)
+  lsal (one-shot-press-pcancel $sticky-time lalt)
+  rsal (one-shot-press-pcancel $sticky-time ralt)
+
+  ;; Nav layer aliases (multi holds modifier alongside key)
+  cpy (macro C-(50 ins))
+  pst (macro S-(50 ins))
+  cut C-x
+  und C-z
+  rdo C-y
+)
+
+(defchordsv2
+  (lalt ralt) (layer-toggle fn) 50 first-release ()
+)
+
+(deflayer base
+  _     _     _     _     _     _         _     _     _     _     _     _     _
+  _     _     _     _     _     _         _     _     _     _     _     _     _     del
+  _     _     _     _     _     _         _     _     _     _     _     _     _     _
+  esc   _     _     _     _     _         _     _     _     _     _     _           _
+  @lssh _     _     _     _     _         _     _     _     _     _                 bspc
+  @lsct @lsme @rsal             @nav                  @lsal @rsme             menu  @rsct
+)
+
+;; Navigation Layer
+(deflayer nav
+  _     _     _     _     _     _         _     _     _     _     _     _     _
+  _     f1    f2    f3    f4    f5        f6    f7    f8    f9    f10   f11   f12   _
+  _     _     esc   tab   _     _         pgup  M-ins del   bspc  _     _     _     _
+  _     @lsme @lsal @lsct @lssh ins       left  down  up    right ent   _           _
+  _     _     _     _     @cpy  @pst      pgdn  home  end   _     _                 _
+  _     _     _                 _                     @cpy  @pst              _     _
+)
+
+;; Symbol Layer (S- versions of num layer)
+(deflayer sym
+  _     _     _     _     _     _         _     _     _     _     _     _     _
+  _     _     _     _     _     _         _     _     _     _     _     _     _     _
+  _     S-1   S-2   S-3   S-4   S-5       S-6   S-7   S-8   S-9   S-0   S--   S-=   _
+  _     @lsme @lsal @lsct @lssh f11       f12   @rssh @rsct @rsal @rsme S-'         _
+  _     _     -     =     S-=   _         _     [     ]     {     }                 _
+  _     _     _                 S--                   _     _                 _     _
+)
+
+;; Number Layer
+(deflayer num
+  _     _     _     _     _     _         _     _     _     _     _     _     _
+  _     _     _     _     _     _         _     _     _     _     _     _     _     _
+  _     1     2     3     4     5         6     7     8     9     0     _     _     _
+  _     @lsme @lsal @lsct @lssh f11       f12   @rssh @rsct @rsal @rsme _           _
+  _     f1    f2    f3    f4    f5        f6    f7    f8    f9    f10               _
+  _     _     _                 _                     _     _                 _     _
+)
+
+
+
+;; Function Layer
+(deflayer fn
+  _     _     _     _     _     _         _     _     _     _     _     _     _
+  _     _     _     _     _     _         _     _     _     _     _     _     _     _
+  _     _     _     _     _     _         F12   F7    F8    F9    slck  _     _     _
+  _     @lsme @lsal @lsct @lssh _         F11   F4    F5    F6    prtsc _           _
+  _     _     _     _     _     _         F10   F1    F2    F3    pause             _
+  _     _     _                 _                     _     _                 _     _
+)
