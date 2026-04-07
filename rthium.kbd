@@ -1,0 +1,282 @@
+;; Kanata Configuration for Rthium on ANSI Keyboards
+;; Same defsrc as Krai, with misfire-proof homerow mods.
+
+(defcfg
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  delegate-to-first-layer yes
+  chords-v2-min-idle 100
+)
+
+;; ---------------------------------------------------------------------------
+;; SOURCE DEFINITION (61 keys)
+;; ---------------------------------------------------------------------------
+
+(defsrc
+  esc   f1    f2    f3    f4    f5    f6    f7    f8    f9    f10   f11   f12   del
+  grv   1     2     3     4     5     6     7     8     9     0     -     =     bspc
+  tab   q     w     e     r     t        y        u     i     o     p     [     ]     \
+  caps  a     s     d     f     g        h        j     k     l     ;     '     ent
+        lsft  z     x     c     v     b     n     m     ,     .     /     rsft
+  lctl  lmet  lalt              spc               ralt              rctl  left
+)
+
+;; ---------------------------------------------------------------------------
+;; VARIABLES
+;; ---------------------------------------------------------------------------
+(defvar
+  tap-time            200
+  hold-time           250
+  require-prior-idle  150
+  sticky-time         1500
+
+  keys-l (
+    tab   q     w     e     r     t
+    caps  a     s     d     f     g
+          lsft  z     x     c     v
+  )
+  keys-r (
+    u     i     o     p     [
+    j     k     l     ;     '
+    m     ,     .     /     rsft
+  )
+)
+
+;; ---------------------------------------------------------------------------
+;; VIRTUAL KEYS
+;; ---------------------------------------------------------------------------
+(defvirtualkeys
+  os-lsft (one-shot-press-pcancel $sticky-time lsft)
+  os-lctl (one-shot-press-pcancel $sticky-time lctl)
+  os-lmet (one-shot-press-pcancel $sticky-time lmet)
+  os-lalt (one-shot-press-pcancel $sticky-time lalt)
+  to-base (layer-switch rthium-base)
+)
+
+;; ---------------------------------------------------------------------------
+;; TEMPLATES
+;; ---------------------------------------------------------------------------
+(defalias
+  tap (multi
+    (layer-switch rthium-nomods)
+    (on-idle $require-prior-idle tap-virtualkey to-base)
+  )
+)
+
+(deftemplate lhrm (tap-key hold-key)
+  (tap-hold-release-keys
+    $tap-time $hold-time
+    (multi $tap-key @tap)
+    $hold-key
+    $keys-l
+  )
+)
+
+(deftemplate rhrm (tap-key hold-key)
+  (tap-hold-release-keys
+    $tap-time $hold-time
+    (multi $tap-key @tap)
+    $hold-key
+    $keys-r
+  )
+)
+
+;; ---------------------------------------------------------------------------
+;; ALIASES
+;; ---------------------------------------------------------------------------
+(defalias
+  ;; Home row mods
+  hmn (t! lhrm n lmet)
+  hmr (t! lhrm r lalt)
+  hmt (t! lhrm t lctl)
+  hms (t! lhrm s lsft)
+
+  hmh (t! rhrm h rsft)
+  hma (t! rhrm a rctl)
+  hme (t! rhrm e ralt)
+  hmi (t! rhrm i rmet)
+
+  ;; Non-HRM typing-layer triggers
+  tb (multi b @tap)
+  tl (multi l @tap)
+  td (multi d @tap)
+  tw (multi w @tap)
+  tz (multi z @tap)
+  tj (multi j @tap)
+  tf (multi f @tap)
+  to (multi o @tap)
+  tu (multi u @tap)
+  tg (multi g @tap)
+  ty (multi y @tap)
+  tx (multi x @tap)
+  tq (multi q @tap)
+  tm (multi m @tap)
+  tc (multi c @tap)
+  tv (multi v @tap)
+  tk (multi k @tap)
+  tp (multi p @tap)
+
+  
+  { S-[
+  } S-]
+  ~ S-`
+  : S-;
+  | S-\
+  + S-=
+  _ S--
+  ! S-1
+  @ S-2
+  # S-3
+  $ S-4
+  % S-5
+  ^ S-6
+  & S-7
+  * S-8
+  < S-,
+  > S-.
+  ? S-/
+  p{ S-9
+  }p S-0
+  col S-;
+  
+
+  ;; Custom shifted pairs
+  com (fork , S-3 (lsft rsft))              ;; Tap: , | Shift: #
+  dot (fork . S-2 (lsft rsft))              ;; Tap: . | Shift: @
+  spa (fork spc S-- (lsft rsft))            ;; Tap: Space | Shift: _
+  quo (fork S-' (unshift ') (lsft rsft))    ;; Tap: " | Shift: '
+  eqa (fork = S-7 (lsft rsft))
+  dsh (fork - S-\ (lsft rsft))
+  lcb (fork S-[ [ (lsft rsft))
+  rcb (fork S-] ] (lsft rsft))
+  tld (fork S-grv grv (lsft rsft))
+  bng (fork S-1 \ (lsft rsft))
+
+
+  dlr (fork S-4 6 (lsft rsft))
+  lbr (fork [ 4 (lsft rsft))
+  lpa (fork S-9 0 (lsft rsft))
+  lth (fork S-, 2 (lsft rsft))
+  pls (fork S-= 8 (lsft rsft))
+  ast (fork S-8 9 (lsft rsft))
+  gth (fork S-. 3 (lsft rsft))
+  rpa (fork S-0 1 (lsft rsft))
+  rbr (fork ] 5 (lsft rsft))
+  crt (fork S-6 7 (lsft rsft))
+
+  nav (tap-hold $tap-time $hold-time @spa (layer-toggle nav))
+  sym (tap-hold $tap-time $hold-time bspc (layer-toggle sym))
+
+  ;; Sticky mods on the physical shift keys for wide/fat mod positions
+  lssh (one-shot-press-pcancel $sticky-time lsft)
+  rssh (one-shot-press-pcancel $sticky-time rsft)
+  lsct (one-shot-press-pcancel $sticky-time lctl)
+  rsct (one-shot-press-pcancel $sticky-time rctl)
+  lsme (one-shot-press-pcancel $sticky-time lmet)
+  rsme (one-shot-press-pcancel $sticky-time rmet)
+  lsal (one-shot-press-pcancel $sticky-time lalt)
+  rsal (one-shot-press-pcancel $sticky-time ralt)
+
+  nsh  (multi lsft (on-release tap-vkey os-lsft))
+  nct  (multi lctl (on-release tap-vkey os-lctl))
+  nme  (multi lmet (on-release tap-vkey os-lmet))
+  nal  (multi lalt (on-release tap-vkey os-lalt))
+
+  osnf (one-shot-press-pcancel $sticky-time (layer-toggle num))
+  ossm (one-shot-press-pcancel $sticky-time (layer-toggle sym))
+
+  cpy C-c
+  pst C-v
+  cut C-x
+  und C-z
+  rdo C-y
+  slct C-a
+  save C-s
+  lchr M-spc
+  scsh M-S-s
+  dict f13
+
+  cpw (caps-word $sticky-time)
+  ree rpt-any
+  rld lrld
+)
+
+;; ---------------------------------------------------------------------------
+;; BASE LAYER (Rthium) — HRMs active
+;; ---------------------------------------------------------------------------
+;; \     $     [     (     <     +     ~     `     *     >     )     ]     ^     %
+;; ;     b     l     d     w     z        =        j     f     o     u     ,     '     !
+;; esc   n     r     t     s     g        -        y     h     a     e     i     ent
+;;       x     q     m     c     v        tab    bspc   k     p     :     /     .
+;;       _     _     lsct            nav            rssh            _     _
+
+(deflayer rthium-base
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  \     @dlr  @lbr  @lpa  @lth  @pls  @~    `     @ast  @gth  @rpa  @rbr  @crt  @%
+  ;     @tb   @tl   @td   @tw   @tz      @eqa     @tj   @tf   @to   @tu   @com  @col  @!
+  esc   @hmn  @hmr  @hmt  @hms  @tg      @dsh     @ty   @hmh  @hma  @hme  @hmi  ent
+        @tx   @tq   @tm   @tc   @tv   tab   bspc  @tk   @tp   @quo  /     @dot
+  _     _     @lsct             @nav              @rssh             _     _
+)
+
+;; ---------------------------------------------------------------------------
+;; NOMODS LAYER — plain keys during fast typing
+;; ---------------------------------------------------------------------------
+(deflayer rthium-nomods
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _        _        _     _     _     _     _     _     _
+  _     n     r     t     s     _        _        _     h     a     e     i     _
+        _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _                 _                 _                 _     _
+)
+
+
+
+;; ---------------------------------------------------------------------------
+;; NAV LAYER
+;; ---------------------------------------------------------------------------
+(deflayer nav
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     6     4     0     2     8     _     _     9     3     1     5     7     _
+  _     @rld  _     _     @dict _        _        pgup  bspc  up    del   @cpw  _     _
+  _     @nme  @nal  @nct  @nsh  @save    _        tab   left  down  right _     _
+        @slct @und  @cut  @cpy  @pst  _     _     pgdn  home  @ree  end   @scsh
+  _     _     _                 _                 _                 _     _
+)
+
+;; ---------------------------------------------------------------------------
+;; SYMBOL LAYER
+;; ---------------------------------------------------------------------------
+
+
+;; \     [     +     :     ~         $     ;     +     ]     `
+;; {     (     =     <     _         _     >     -     )     }
+;; _     %     &     |     !         &     rsft  rctl  ralt  rmet
+
+(deflayer sym
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     \     @{    @+    @}    _        _        _     [     -     ]     @%    _     _
+  _     @p{   @:    @}p   @$    _        _        @^    @<    =     @>    @!    _
+        _     @~    @&    /     @?    _     _     _     @*    @|    `     _
+  _     _     _                 _                 _                 _     _
+)
+
+(deflayer num
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _        _        _     _     _     _     _     _     _
+  _     _     _     _     _     _        _        _     _     _     _     _     _
+        _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _                 _                 _                 _     _
+)
+
+(deflayer fn
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _     _     _     _        _        _     _     _     _     _     _     _
+  _     _     _     _     _     _        _        _     _     _     _     _     _
+        _     _     _     _     _     _     _     _     _     _     _     _
+  _     _     _                 _                 _                 _     _
+)
